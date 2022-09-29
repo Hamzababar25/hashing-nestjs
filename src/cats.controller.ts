@@ -2,6 +2,7 @@ import { Body, Controller, Delete, Get, Param, Post } from "@nestjs/common";
 import {CatsService} from "./cats.service";
 import { Cat } from './/cat.schema';
 import * as bcrypt from 'bcrypt';
+import { JwtService } from "@nestjs/jwt";
 
 
 
@@ -16,7 +17,8 @@ export class CreateCatDto {
 
   @Controller('cats')
 export class CatController {
-    constructor(private readonly catsService: CatsService) {}
+    constructor(private jwtService: JwtService,
+      private readonly catsService: CatsService) {}
      @Post()
 async create(@Body() createCatDto: CreateCatDto) {
   const saltOrRounds = 10;
@@ -30,17 +32,18 @@ async create(@Body() createCatDto: CreateCatDto) {
 async createe(@Body() createCatDto: CreateCatDto) {
   
   
-   const u= await this.catsService.findOne(createCatDto);
+   const u= await this.catsService.findOne(createCatDto) as any;
    if(u){
+    const jwt=await this.jwtService.signAsync({id:u.mail});
     const result=bcrypt.compareSync(createCatDto?.password,u.password)
-    return result?{u}:{message:"Invalid Password!"}
+    return result?{...u?._doc,token:jwt}:{message:"Invalid Password!"}
    }
    else{
    return  {
     message:"Mail Not Found",
    };
   }
-
+  
 }
 
 @Get()
